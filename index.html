@@ -3,30 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Batman Jump - Final Edition</title>
+    <title>Batman Jump - Fixed Edition</title>
     <style>
         body { text-align: center; background: #000; color: white; font-family: 'Arial', sans-serif; margin: 0; overflow: hidden; touch-action: none; }
         #gameContainer { width: 100vw; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; }
-        canvas { background: #1a1a1a; border-top: 4px solid #f1c40f; border-bottom: 4px solid #f1c40f; width: 100%; max-width: 600px; height: auto; }
-        .ui-layer { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; }
-        .score-box { color: #f1c40f; font-weight: bold; font-size: 22px; margin-bottom: 10px; }
-        .btn { background: #f1c40f; color: black; border: none; padding: 15px 30px; font-size: 20px; font-weight: bold; cursor: pointer; pointer-events: auto; border-radius: 5px; margin-top: 10px; }
-        h1 { color: #f1c40f; text-shadow: 2px 2px #000; margin-bottom: 10px; }
+        canvas { background: #1a1a1a; border-top: 4px solid #f1c40f; border-bottom: 4px solid #f1c40f; width: 100%; max-width: 600px; }
+        .ui-text { position: absolute; text-align: center; width: 100%; pointer-events: none; z-index: 10; }
+        #liveScore { top: 20px; color: #f1c40f; font-weight: bold; font-size: 22px; }
+        #instruction { bottom: 20px; color: #aaa; font-size: 14px; }
+        .overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.8); padding: 20px; border-radius: 10px; border: 2px solid #f1c40f; }
+        h1 { color: #f1c40f; margin: 0 0 10px 0; }
+        p { margin: 5px 0; }
     </style>
 </head>
 <body>
     <div id="gameContainer">
-        <div class="score-box" id="liveScore">SCORE: 0 | BEST: 0</div>
+        <div id="liveScore" class="ui-text">SCORE: 0 | BEST: 0</div>
         <canvas id="gameCanvas" width="600" height="250"></canvas>
-        
-        <div id="startScreen" class="ui-layer">
+        <div id="instruction" class="ui-text">SPACE / TOUCH = JUMP</div>
+
+        <div id="startScreen" class="overlay">
             <h1>BATMAN JUMP</h1>
-            <button class="btn" onclick="startGame()">START GAME</button>
+            <p>PRESS SPACE TO START</p>
         </div>
 
-        <div id="gameOverScreen" class="ui-layer" style="display: none;">
-            <h1 id="statusText">GOTHAM FELL!</h1>
-            <button class="btn" onclick="resetGame()">RETRY</button>
+        <div id="gameOverScreen" class="overlay" style="display: none;">
+            <h1>GOTHAM FELL!</h1>
+            <p id="finalScore"></p>
+            <p style="color: #f1c40f; font-weight: bold;">PRESS SPACE TO RETRY</p>
         </div>
     </div>
 
@@ -56,34 +60,43 @@
         }
 
         function playSound(freq, type, duration) {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = type;
-            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start();
-            osc.stop(audioCtx.currentTime + duration);
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(); osc.stop(audioCtx.currentTime + duration);
+            } catch(e) {}
         }
 
-        function startGame() {
+        function handleAction() {
             if (audioCtx.state === 'suspended') audioCtx.resume();
-            document.getElementById("startScreen").style.display = "none";
-            gameActive = true;
-            initBuildings();
-            draw();
-        }
-
-        function resetGame() {
-            score = 0;
-            obstacle.x = 650;
-            obstacle.speed = 5;
-            player.y = player.ground;
-            isGameOver = false;
-            document.getElementById("gameOverScreen").style.display = "none";
-            requestAnimationFrame(draw);
+            
+            if (!gameActive && !isGameOver) {
+                // Start Game
+                document.getElementById("startScreen").style.display = "none";
+                gameActive = true;
+                initBuildings();
+                requestAnimationFrame(draw);
+            } else if (isGameOver) {
+                // Reset Game
+                score = 0;
+                obstacle.x = 650;
+                obstacle.speed = 5;
+                player.y = player.ground;
+                isGameOver = false;
+                document.getElementById("gameOverScreen").style.display = "none";
+                scoreDisplay.innerHTML = `SCORE: 0 | BEST: ${highScore}`;
+                requestAnimationFrame(draw);
+            } else if (gameActive && !player.jumping) {
+                // Jump
+                player.dy = player.jump;
+                player.jumping = true;
+                playSound(500, "sine", 0.1);
+            }
         }
 
         function draw() {
@@ -101,18 +114,16 @@
                 }
             });
 
-            // Ground
             ctx.fillStyle = "#f1c40f";
             ctx.fillRect(0, 240, 600, 10);
 
-            // Batman & Obstacle
             ctx.drawImage(batmanImg, player.x, player.y, player.w, player.h);
+            
             ctx.fillStyle = "black";
             ctx.fillRect(obstacle.x, obstacle.y, obstacle.w, obstacle.h);
             ctx.strokeStyle = "white";
             ctx.strokeRect(obstacle.x, obstacle.y, obstacle.w, obstacle.h);
 
-            // Logic
             player.y += player.dy;
             if (player.y < player.ground) player.dy += 0.6;
             else { player.y = player.ground; player.dy = 0; player.jumping = false; }
@@ -127,30 +138,22 @@
                     localStorage.setItem("batmanHighScore", highScore);
                 }
                 scoreDisplay.innerHTML = `SCORE: ${score} | BEST: ${highScore}`;
-                playSound(400, "sine", 0.1);
             }
 
             if (player.x < obstacle.x + obstacle.w && player.x + player.w > obstacle.x &&
                 player.y < obstacle.y + obstacle.h && player.y + player.h > obstacle.y) {
                 isGameOver = true;
-                playSound(100, "square", 0.3);
+                playSound(150, "square", 0.3);
+                document.getElementById("finalScore").innerText = "YOUR SCORE: " + score;
                 document.getElementById("gameOverScreen").style.display = "block";
-            }
-
-            requestAnimationFrame(draw);
-        }
-
-        function jump() {
-            if (gameActive && !player.jumping && !isGameOver) {
-                player.dy = player.jump;
-                player.jumping = true;
-                playSound(600, "sine", 0.1);
+            } else {
+                requestAnimationFrame(draw);
             }
         }
 
-        window.addEventListener("keydown", (e) => { if (e.code === "Space") jump(); });
-        canvas.addEventListener("touchstart", (e) => { e.preventDefault(); jump(); });
-        initBuildings();
+        window.addEventListener("keydown", (e) => { if (e.code === "Space") { e.preventDefault(); handleAction(); } });
+        window.addEventListener("touchstart", (e) => { e.preventDefault(); handleAction(); }, {passive: false});
+
         scoreDisplay.innerHTML = `SCORE: 0 | BEST: ${highScore}`;
     </script>
 </body>
