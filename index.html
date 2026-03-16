@@ -3,31 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Batman Jump - Stable Edition</title>
+    <title>Batman Jump - Clean Edition</title>
     <style>
         body { text-align: center; background: #1a1a1a; color: white; font-family: 'Arial', sans-serif; margin: 0; overflow: hidden; touch-action: none; }
         #gameContainer { width: 100vw; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; }
         canvas { background: #222; border: 4px solid #f1c40f; width: 95%; max-width: 600px; border-radius: 8px; }
-        .ui-text { position: absolute; width: 100%; text-align: center; pointer-events: none; }
-        #liveScore { top: 15%; color: #f1c40f; font-weight: bold; font-size: 26px; text-shadow: 2px 2px #000; }
-        .overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.85); padding: 30px; border: 2px solid #f1c40f; border-radius: 12px; z-index: 20; min-width: 280px; }
+        
+        /* სქორების პოზიცია */
+        #liveScore { margin-bottom: 10px; color: #f1c40f; font-weight: bold; font-size: 22px; text-shadow: 2px 2px #000; }
+        
+        /* ოვერლეი (სათაური და რესტარტი) */
+        .overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.85); padding: 30px; border: 2px solid #f1c40f; border-radius: 12px; z-index: 20; min-width: 250px; }
         h1 { color: #f1c40f; margin: 0 0 10px 0; font-size: 28px; }
         p { font-size: 18px; margin: 10px 0; }
     </style>
 </head>
 <body>
     <div id="gameContainer">
-        <div id="liveScore" class="ui-text">SCORE: 0 | BEST: 0</div>
+        <div id="liveScore">SCORE: 0 | BEST: 0</div>
         <canvas id="gameCanvas" width="600" height="250"></canvas>
         
         <div id="startScreen" class="overlay">
             <h1>BATMAN JUMP</h1>
             <p>PRESS SPACE TO START</p>
-            <p style="color: #3498db; font-size: 14px;">BLUE BALL = SLOW DOWN</p>
         </div>
 
         <div id="gameOverScreen" class="overlay" style="display: none;">
-            <h1 style="color: #e74c3c;">GAME OVER</h1>
+            <h1>GOTHAM FELL!</h1>
             <p id="finalScore"></p>
             <p style="color: #f1c40f; font-weight: bold;">PRESS SPACE TO RETRY</p>
         </div>
@@ -45,9 +47,9 @@
         const batmanImg = new Image();
         batmanImg.src = 'https://img.icons8.com/color/96/batman.png';
 
+        // მოთამაშე და პატარა კუბიკი (25x30 პატარაა ბეტმენზე)
         let player = { x: 50, y: 180, w: 45, h: 45, dy: 0, jump: -11.5, ground: 180, jumping: false };
-        let obstacle = { x: 750, y: 195, w: 35, h: 45, speed: 5.5 };
-        let powerUp = { x: -100, y: 100, active: false };
+        let obstacle = { x: 750, y: 205, w: 25, h: 35, speed: 5.5 };
         let buildings = [];
 
         function initBuildings() {
@@ -83,8 +85,12 @@
 
         function resetGame() {
             score = 0; obstacle.x = 800; obstacle.speed = 5.5;
-            player.y = player.ground; powerUp.active = false; isGameOver = false;
-            initBuildings(); scoreDisplay.innerHTML = `SCORE: 0 | BEST: ${highScore}`;
+            player.y = player.ground; isGameOver = false;
+            initBuildings(); updateScoreText();
+        }
+
+        function updateScoreText() {
+            scoreDisplay.innerHTML = `SCORE: ${score} | BEST: ${highScore}`;
         }
 
         function draw() {
@@ -92,7 +98,7 @@
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Buildings (Gray)
+            // შენობები
             buildings.forEach(b => {
                 ctx.fillStyle = "#333";
                 ctx.fillRect(b.x, 240 - b.h, 80, b.h);
@@ -100,28 +106,18 @@
                 b.x -= 1.5; if(b.x < -120) b.x = 800;
             });
 
-            // Ground
+            // მიწა
             ctx.fillStyle = "#f1c40f";
             ctx.fillRect(0, 240, 600, 10);
 
-            // Batman & Obstacle
+            // ბეტმენი და კუბიკი
             ctx.drawImage(batmanImg, player.x, player.y, player.w, player.h);
-            ctx.fillStyle = "#000"; ctx.fillRect(obstacle.x, obstacle.y, obstacle.w, obstacle.h);
-            ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.strokeRect(obstacle.x, obstacle.y, obstacle.w, obstacle.h);
+            ctx.fillStyle = "#000"; 
+            ctx.fillRect(obstacle.x, obstacle.y, obstacle.w, obstacle.h);
+            ctx.strokeStyle = "#fff"; 
+            ctx.strokeRect(obstacle.x, obstacle.y, obstacle.w, obstacle.h);
 
-            // Power-Up (Simple Blue Ball)
-            if (powerUp.active) {
-                ctx.fillStyle = "#3498db"; ctx.beginPath(); ctx.arc(powerUp.x, powerUp.y, 12, 0, Math.PI * 2); ctx.fill();
-                powerUp.x -= obstacle.speed;
-                if (player.x < powerUp.x + 15 && player.x + player.w > powerUp.x - 15 &&
-                    player.y < powerUp.y + 15 && player.y + player.h > powerUp.y - 15) {
-                    powerUp.active = false; obstacle.speed = Math.max(5.5, obstacle.speed - 1.5);
-                    playSound(800, "sine", 0.2, 0.1);
-                }
-                if (powerUp.x < -20) powerUp.active = false;
-            }
-
-            // Physics
+            // ფიზიკა
             player.y += player.dy;
             if (player.y < player.ground) player.dy += 0.65;
             else { player.y = player.ground; player.dy = 0; player.jumping = false; }
@@ -129,14 +125,11 @@
             obstacle.x -= obstacle.speed;
             if (obstacle.x < -obstacle.w) {
                 obstacle.x = 800; score++; obstacle.speed += 0.18;
-                if (Math.random() < 0.15 && !powerUp.active) {
-                    powerUp.x = 800; powerUp.y = 60 + Math.random() * 50;
-                    powerUp.active = true;
-                }
                 if (score > highScore) { highScore = score; localStorage.setItem("batmanHighScore", highScore); }
-                scoreDisplay.innerHTML = `SCORE: ${score} | BEST: ${highScore}`;
+                updateScoreText();
             }
 
+            // შეჯახება
             if (player.x < obstacle.x + obstacle.w && player.x + player.w > obstacle.x &&
                 player.y < obstacle.y + obstacle.h && player.y + player.h > obstacle.y) {
                 isGameOver = true; playSound(150, "square", 0.3, 0.1);
@@ -148,7 +141,7 @@
         window.addEventListener("keydown", (e) => { if (e.code === "Space") { e.preventDefault(); handleAction(); } });
         window.addEventListener("touchstart", (e) => { e.preventDefault(); handleAction(); }, {passive: false});
         initBuildings();
-        scoreDisplay.innerHTML = `SCORE: 0 | BEST: ${highScore}`;
+        updateScoreText();
     </script>
 </body>
 </html>
