@@ -3,16 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Batman Jump - RNG Edition</title>
+    <title>Batman Jump - Extreme Edition</title>
     <style>
         body { text-align: center; background: #000; color: white; font-family: 'Arial', sans-serif; margin: 0; overflow: hidden; touch-action: none; }
         #gameContainer { width: 100vw; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; }
-        canvas { background: #1a1a1a; border-top: 4px solid #f1c40f; border-bottom: 4px solid #f1c40f; width: 100%; max-width: 600px; }
+        canvas { background: #111; border-top: 4px solid #f1c40f; border-bottom: 4px solid #f1c40f; width: 100%; max-width: 600px; }
         .ui-text { position: absolute; text-align: center; width: 100%; pointer-events: none; z-index: 10; }
-        #liveScore { top: 20px; color: #f1c40f; font-weight: bold; font-size: 22px; }
-        .overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); padding: 25px; border-radius: 10px; border: 2px solid #f1c40f; min-width: 250px; }
-        h1 { color: #f1c40f; margin: 0; }
-        .hint { color: #3498db; font-size: 13px; margin-top: 10px; }
+        #liveScore { top: 20px; color: #f1c40f; font-weight: bold; font-size: 24px; }
+        .overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); padding: 30px; border: 2px solid #f1c40f; border-radius: 10px; }
     </style>
 </head>
 <body>
@@ -21,15 +19,15 @@
         <canvas id="gameCanvas" width="600" height="250"></canvas>
         
         <div id="startScreen" class="overlay">
-            <h1>BATMAN JUMP</h1>
+            <h1 style="color:#f1c40f">HARDCORE MODE</h1>
             <p>SPACE TO START</p>
-            <p class="hint">BLUE STAR APPEARS RANDOMLY!</p>
+            <p style="color:#3498db; font-size:12px">BLUE STAR: SLOWS DOWN BUT GROWS THE ENEMY!</p>
         </div>
 
         <div id="gameOverScreen" class="overlay" style="display: none;">
-            <h1>GOTHAM FELL!</h1>
+            <h1 style="color:#e74c3c">FAILED!</h1>
             <p id="finalScore"></p>
-            <p style="color: #f1c40f; font-weight: bold;">SPACE TO RETRY</p>
+            <p style="color:#f1c40f">SPACE TO RETRY</p>
         </div>
     </div>
 
@@ -41,19 +39,20 @@
 
         let gameActive = false, isGameOver = false, score = 0;
         let highScore = localStorage.getItem("batmanHighScore") || 0;
+        let flashEffect = 0;
         
         const batmanImg = new Image();
         batmanImg.src = 'https://img.icons8.com/color/96/batman.png';
 
-        let player = { x: 50, y: 180, w: 50, h: 50, dy: 0, jump: -12, ground: 180, jumping: false };
-        let obstacle = { x: 700, y: 200, w: 30, h: 30, speed: 5 };
+        let player = { x: 50, y: 180, w: 45, h: 45, dy: 0, jump: -12, ground: 180, jumping: false };
+        let obstacle = { x: 700, y: 200, w: 25, h: 35, speed: 6 };
         let powerUp = { x: -100, y: 100, active: false };
         let buildings = [];
 
         function initBuildings() {
             buildings = [];
-            for(let i=0; i<800; i+=80) {
-                buildings.push({x: i, h: 50 + Math.random() * 100, light: Math.random() < 0.3});
+            for(let i=0; i<900; i+=100) {
+                buildings.push({x: i, h: 40 + Math.random() * 120, light: Math.random() < 0.4});
             }
         }
 
@@ -75,81 +74,94 @@
             if (!gameActive && !isGameOver) {
                 document.getElementById("startScreen").style.display = "none";
                 gameActive = true;
-                resetGameValues();
+                resetGame();
                 requestAnimationFrame(draw);
             } else if (isGameOver) {
-                resetGameValues();
+                resetGame();
                 document.getElementById("gameOverScreen").style.display = "none";
                 requestAnimationFrame(draw);
             } else if (gameActive && !player.jumping) {
                 player.dy = player.jump;
                 player.jumping = true;
-                playSound(500, "sine", 0.1);
+                playSound(450, "sine", 0.1);
             }
         }
 
-        function resetGameValues() {
+        function resetGame() {
             score = 0;
-            obstacle.x = 700;
-            obstacle.speed = 5.5; // ცოტა უფრო სწრაფი დასაწყისი
+            obstacle.x = 750;
+            obstacle.speed = 6.5; // მაღალი საწყისი სიჩქარე
+            obstacle.w = 25;
             player.y = player.ground;
             powerUp.active = false;
             isGameOver = false;
-            scoreDisplay.innerHTML = `SCORE: 0 | BEST: ${highScore}`;
             initBuildings();
+            scoreDisplay.innerHTML = `SCORE: 0 | BEST: ${highScore}`;
         }
 
         function draw() {
             if (isGameOver || !gameActive) return;
 
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Flash effect for Power-up
+            if (flashEffect > 0) {
+                ctx.fillStyle = `rgba(52, 152, 219, ${flashEffect})`;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                flashEffect -= 0.05;
+            } else {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
 
+            // Buildings
             buildings.forEach(b => {
                 ctx.fillStyle = "#111";
                 ctx.fillRect(b.x, 240 - b.h, 60, b.h);
                 if(b.light) { ctx.fillStyle = "#f1c40f"; ctx.fillRect(b.x + 25, 240 - b.h + 15, 8, 8); }
+                b.x -= 2; // შენობებიც მოძრაობს დინამიკისთვის
+                if(b.x < -100) b.x = 800;
             });
+
+            // Ground
             ctx.fillStyle = "#f1c40f";
             ctx.fillRect(0, 240, 600, 10);
 
+            // Batman & Obstacle
             ctx.drawImage(batmanImg, player.x, player.y, player.w, player.h);
-            
-            ctx.fillStyle = "black";
+            ctx.fillStyle = "#e74c3c"; // წითელი მტერი
             ctx.fillRect(obstacle.x, obstacle.y, obstacle.w, obstacle.h);
             ctx.strokeStyle = "white";
             ctx.strokeRect(obstacle.x, obstacle.y, obstacle.w, obstacle.h);
 
-            // Power-Up Logic (Random Spawn)
+            // Power-Up Logic
             if (powerUp.active) {
                 ctx.fillStyle = "#3498db";
-                ctx.beginPath();
-                ctx.arc(powerUp.x, powerUp.y, 10, 0, Math.PI * 2);
-                ctx.fill();
+                ctx.beginPath(); ctx.arc(powerUp.x, powerUp.y, 12, 0, Math.PI * 2); ctx.fill();
                 powerUp.x -= obstacle.speed;
                 
-                if (player.x < powerUp.x + 15 && player.x + player.w > powerUp.x - 15 &&
-                    player.y < powerUp.y + 15 && player.y + player.h > powerUp.y - 15) {
+                if (player.x < powerUp.x + 20 && player.x + player.w > powerUp.x - 20 &&
+                    player.y < powerUp.y + 20 && player.y + player.h > powerUp.y - 20) {
                     powerUp.active = false;
-                    obstacle.speed = Math.max(5.5, obstacle.speed - 1.5); // შენელება
-                    playSound(900, "sine", 0.2, 0.1);
+                    obstacle.speed = Math.max(6, obstacle.speed - 3); 
+                    obstacle.w += 15; // მტერი იზრდება სიგანეში!
+                    flashEffect = 0.4;
+                    playSound(900, "sine", 0.3, 0.1);
                 }
                 if (powerUp.x < -20) powerUp.active = false;
             }
 
+            // Physics
             player.y += player.dy;
-            if (player.y < player.ground) player.dy += 0.6;
+            if (player.y < player.ground) player.dy += 0.7; // სიმძიმეც მეტია
             else { player.y = player.ground; player.dy = 0; player.jumping = false; }
 
             obstacle.x -= obstacle.speed;
-            if (obstacle.x < -30) {
-                obstacle.x = 750;
+            if (obstacle.x < -obstacle.w) {
+                obstacle.x = 800;
                 score++;
-                obstacle.speed += 0.22; // უფრო აგრესიული აჩქარება
+                obstacle.speed += 0.35; // ბევრად სწრაფი აჩქარება
                 
-                // 20% შანსი ყოველ ქულაზე
-                if (Math.random() < 0.20 && !powerUp.active && score > 5) {
-                    powerUp.x = 750;
-                    powerUp.y = 70 + Math.random() * 60; // ცვლადი სიმაღლე
+                if (Math.random() < 0.25 && !powerUp.active) {
+                    powerUp.x = 800;
+                    powerUp.y = 80 + Math.random() * 50;
                     powerUp.active = true;
                 }
 
@@ -160,11 +172,12 @@
                 scoreDisplay.innerHTML = `SCORE: ${score} | BEST: ${highScore}`;
             }
 
+            // Collision
             if (player.x < obstacle.x + obstacle.w && player.x + player.w > obstacle.x &&
                 player.y < obstacle.y + obstacle.h && player.y + player.h > obstacle.y) {
                 isGameOver = true;
-                playSound(150, "square", 0.3);
-                document.getElementById("finalScore").innerText = "YOUR SCORE: " + score;
+                playSound(100, "square", 0.4, 0.2);
+                document.getElementById("finalScore").innerText = "FINAL SCORE: " + score;
                 document.getElementById("gameOverScreen").style.display = "block";
             } else {
                 requestAnimationFrame(draw);
