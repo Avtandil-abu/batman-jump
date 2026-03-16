@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ბეტმენის ნახტომი / Batman Jump</title>
+    <title>Batman Jump - High Score Edition</title>
     <style>
         body { 
             text-align: center; 
@@ -30,11 +30,10 @@
             height: auto;
         }
         h1 { color: #f1c40f; margin: 5px 0; font-size: 24px; }
-        /* ქულის ახალი პოზიცია - სათაურის ქვეშ, ცენტრში */
         .score-box { 
             color: #f1c40f; 
             font-weight: bold; 
-            font-size: 26px; 
+            font-size: 22px; 
             margin-bottom: 10px;
         }
         .info-text { font-size: 12px; color: #bdc3c7; margin-top: 5px; }
@@ -43,9 +42,9 @@
 <body>
     <div id="gameContainer">
         <h1 id="titleText">BATMAN JUMP</h1>
-        <div class="score-box" id="liveScore">SCORE: 0</div>
+        <div class="score-box" id="liveScore">LOADING...</div>
         <canvas id="gameCanvas" width="600" height="250"></canvas>
-        <p class="info-text" id="helpText">TAP ANYWHERE TO JUMP</p>
+        <p class="info-text" id="helpText">TAP TO JUMP</p>
     </div>
 
     <script>
@@ -54,20 +53,21 @@
         const scoreDisplay = document.getElementById("liveScore");
         const helpText = document.getElementById("helpText");
 
-        // ენის ავტომატური განსაზღვრა
         const userLang = navigator.language || navigator.userLanguage;
         const isGeorgian = userLang.includes('ka');
 
+        let highScore = localStorage.getItem("batmanHighScore") || 0;
+
         const texts = {
             score: isGeorgian ? "ქულა: " : "SCORE: ",
+            best: isGeorgian ? "რეკორდი: " : "BEST: ",
             gameOver: isGeorgian ? "გოთემი დაეცა!" : "GOTHAM FELL!",
             restart: isGeorgian ? "დასაწყებად შეეხე ეკრანს" : "TAP TO RESTART",
             help: isGeorgian ? "შეხება = ნახტომი" : "TAP TO JUMP"
         };
 
-        // ტექსტების დაყენება
         helpText.innerText = texts.help;
-        scoreDisplay.innerText = texts.score + "0";
+        scoreDisplay.innerHTML = `${texts.score} 0 | ${texts.best} ${highScore}`;
 
         const batmanImg = new Image();
         batmanImg.src = 'https://img.icons8.com/color/96/batman.png';
@@ -93,24 +93,16 @@
             }
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // ფონი
             ctx.fillStyle = "#34495e";
             for(let i=0; i<600; i+=60) ctx.fillRect(i, 150, 40, 100);
-
-            // მიწა
             ctx.strokeStyle = "#f1c40f";
             ctx.lineWidth = 5;
             ctx.beginPath(); ctx.moveTo(0, 240); ctx.lineTo(600, 240); ctx.stroke();
 
-            // ბეტმენი
             ctx.drawImage(batmanImg, player.x, player.y, player.w, player.h);
-
-            // დაბრკოლება
             ctx.fillStyle = "#000";
             ctx.fillRect(obstacle.x, obstacle.y, obstacle.w, obstacle.h);
 
-            // ლოგიკა
             player.y += player.dy;
             if (player.y < player.ground) player.dy += 0.6;
             else { player.y = player.ground; player.dy = 0; player.jumping = false; }
@@ -120,14 +112,17 @@
                 obstacle.x = 600; 
                 score++; 
                 obstacle.speed += 0.25; 
-                scoreDisplay.innerText = texts.score + score;
+                if (score > highScore) {
+                    highScore = score;
+                    localStorage.setItem("batmanHighScore", highScore);
+                }
+                scoreDisplay.innerHTML = `${texts.score}${score} | ${texts.best}${highScore}`;
             }
 
             if (player.x < obstacle.x + obstacle.w && player.x + player.w > obstacle.x &&
                 player.y < obstacle.y + obstacle.h && player.y + player.h > obstacle.y) {
                 isGameOver = true;
             }
-
             requestAnimationFrame(draw);
         }
 
