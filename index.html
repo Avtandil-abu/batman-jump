@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ბეტმენის ნახტომი / Batman Jump</title>
+    <style>
+        body { 
+            text-align: center; 
+            background: #1a1a1a; 
+            color: white; 
+            font-family: 'Arial', sans-serif; 
+            margin: 0; 
+            overflow: hidden; 
+            touch-action: none;
+        }
+        #gameContainer {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        canvas { 
+            background: #2c3e50; 
+            border-top: 4px solid #f1c40f; 
+            border-bottom: 4px solid #f1c40f; 
+            width: 100%; 
+            height: auto;
+        }
+        h1 { color: #f1c40f; margin: 5px 0; font-size: 24px; }
+        /* ქულის ახალი პოზიცია - სათაურის ქვეშ, ცენტრში */
+        .score-box { 
+            color: #f1c40f; 
+            font-weight: bold; 
+            font-size: 26px; 
+            margin-bottom: 10px;
+        }
+        .info-text { font-size: 12px; color: #bdc3c7; margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <h1 id="titleText">BATMAN JUMP</h1>
+        <div class="score-box" id="liveScore">SCORE: 0</div>
+        <canvas id="gameCanvas" width="600" height="250"></canvas>
+        <p class="info-text" id="helpText">TAP ANYWHERE TO JUMP</p>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const scoreDisplay = document.getElementById("liveScore");
+        const helpText = document.getElementById("helpText");
+
+        // ენის ავტომატური განსაზღვრა
+        const userLang = navigator.language || navigator.userLanguage;
+        const isGeorgian = userLang.includes('ka');
+
+        const texts = {
+            score: isGeorgian ? "ქულა: " : "SCORE: ",
+            gameOver: isGeorgian ? "გოთემი დაეცა!" : "GOTHAM FELL!",
+            restart: isGeorgian ? "დასაწყებად შეეხე ეკრანს" : "TAP TO RESTART",
+            help: isGeorgian ? "შეხება = ნახტომი" : "TAP TO JUMP"
+        };
+
+        // ტექსტების დაყენება
+        helpText.innerText = texts.help;
+        scoreDisplay.innerText = texts.score + "0";
+
+        const batmanImg = new Image();
+        batmanImg.src = 'https://img.icons8.com/color/96/batman.png';
+
+        let player = { x: 50, y: 180, w: 50, h: 50, dy: 0, jump: -12, ground: 180, jumping: false };
+        let obstacle = { x: 600, y: 200, w: 30, h: 30, speed: 5 };
+        let score = 0;
+        let isGameOver = false;
+
+        function draw() {
+            if (isGameOver) {
+                ctx.fillStyle = "rgba(0,0,0,0.85)";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = "#f1c40f";
+                ctx.font = "bold 30px Arial";
+                ctx.fillText(texts.gameOver, 200, 100);
+                ctx.fillStyle = "white";
+                ctx.font = "22px Arial";
+                ctx.fillText(texts.score + score, 230, 140);
+                ctx.font = "16px Arial";
+                ctx.fillText(texts.restart, 200, 180);
+                return;
+            }
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // ფონი
+            ctx.fillStyle = "#34495e";
+            for(let i=0; i<600; i+=60) ctx.fillRect(i, 150, 40, 100);
+
+            // მიწა
+            ctx.strokeStyle = "#f1c40f";
+            ctx.lineWidth = 5;
+            ctx.beginPath(); ctx.moveTo(0, 240); ctx.lineTo(600, 240); ctx.stroke();
+
+            // ბეტმენი
+            ctx.drawImage(batmanImg, player.x, player.y, player.w, player.h);
+
+            // დაბრკოლება
+            ctx.fillStyle = "#000";
+            ctx.fillRect(obstacle.x, obstacle.y, obstacle.w, obstacle.h);
+
+            // ლოგიკა
+            player.y += player.dy;
+            if (player.y < player.ground) player.dy += 0.6;
+            else { player.y = player.ground; player.dy = 0; player.jumping = false; }
+
+            obstacle.x -= obstacle.speed;
+            if (obstacle.x < -30) { 
+                obstacle.x = 600; 
+                score++; 
+                obstacle.speed += 0.25; 
+                scoreDisplay.innerText = texts.score + score;
+            }
+
+            if (player.x < obstacle.x + obstacle.w && player.x + player.w > obstacle.x &&
+                player.y < obstacle.y + obstacle.h && player.y + player.h > obstacle.y) {
+                isGameOver = true;
+            }
+
+            requestAnimationFrame(draw);
+        }
+
+        function handleInput(e) {
+            if (e && e.type === "touchstart") e.preventDefault();
+            if (!player.jumping && !isGameOver) {
+                player.dy = player.jump;
+                player.jumping = true;
+            } else if (isGameOver) {
+                location.reload();
+            }
+        }
+
+        document.body.addEventListener("touchstart", handleInput, { passive: false });
+        window.addEventListener("keydown", (e) => { if (e.code === "Space") handleInput(); });
+
+        draw();
+    </script>
+</body>
+</html>
