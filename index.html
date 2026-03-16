@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Batman Jump - Gotham City</title>
+    <title>Batman Jump - Final Gotham</title>
     <style>
-        body { text-align: center; background: #1a1a1a; color: white; font-family: 'Arial', sans-serif; margin: 0; overflow: hidden; touch-action: none; }
+        body { text-align: center; background: #0b1115; color: white; font-family: 'Arial', sans-serif; margin: 0; overflow: hidden; touch-action: none; }
         #gameContainer { width: 100vw; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        canvas { background: #141e27; border-top: 4px solid #f1c40f; border-bottom: 4px solid #f1c40f; width: 100%; height: auto; }
+        canvas { background: #1a2530; border-top: 4px solid #f1c40f; border-bottom: 4px solid #f1c40f; width: 100%; height: auto; }
         h1 { color: #f1c40f; margin: 5px 0; font-size: 24px; text-shadow: 2px 2px #000; }
         .score-box { color: #f1c40f; font-weight: bold; font-size: 22px; margin-bottom: 10px; }
         .info-text { font-size: 12px; color: #bdc3c7; margin-top: 5px; }
@@ -50,6 +50,13 @@
         let score = 0;
         let isGameOver = false;
 
+        // **წინასწარ ვქმნით ქალაქის შენობებს Random სიმაღლეებით**
+        let buildings = [];
+        for(let i=0; i<600; i+=80) {
+            let h = 80 + Math.random() * 100; // სიმაღლე 80-დან 180-მდე
+            buildings.push({x: i, h: h});
+        }
+
         function draw() {
             if (isGameOver) {
                 ctx.fillStyle = "rgba(0,0,0,0.85)";
@@ -67,18 +74,18 @@
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // ფონი: გოთემის შენობები ფანჯრებით
-            for(let i=0; i<600; i+=80) {
-                let h = 120 + (i % 4) * 15; 
-                ctx.fillStyle = "#2c3e50";
-                ctx.fillRect(i, 240 - h, 60, h); 
+            // **ქალაქის ხატვა (შენობები + scattered windows)**
+            ctx.fillStyle = "#2c3e50"; // შენობების ფერი
+            buildings.forEach((b) => {
+                ctx.fillRect(b.x, 240 - b.h, 60, b.h); 
                 
-                ctx.fillStyle = "#f1c40f";
-                for(let row=0; row < h-30; row+=20) {
-                    ctx.fillRect(i+15, 240-h+row+20, 6, 6);
-                    ctx.fillRect(i+40, 240-h+row+20, 6, 6);
+                // ფანჯრების ხატვა ( scattered, not all on)
+                for(let row=0; row < b.h-30; row+=20) {
+                    // **ეს ლოგიკა random-ად რთავს შუქს**
+                    if(Math.random() < 0.3) { ctx.fillStyle = "#f1c40f"; ctx.fillRect(b.x+15, 240-b.h+row+20, 6, 6); ctx.fillStyle = "#2c3e50"; }
+                    if(Math.random() < 0.3) { ctx.fillStyle = "#f1c40f"; ctx.fillRect(b.x+40, 240-b.h+row+20, 6, 6); ctx.fillStyle = "#2c3e50"; }
                 }
-            }
+            });
 
             // მიწა
             ctx.strokeStyle = "#f1c40f";
