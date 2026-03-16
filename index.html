@@ -3,34 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Batman Jump - Fixed Edition</title>
+    <title>Batman Jump - PowerUp Edition</title>
     <style>
         body { text-align: center; background: #000; color: white; font-family: 'Arial', sans-serif; margin: 0; overflow: hidden; touch-action: none; }
         #gameContainer { width: 100vw; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; }
         canvas { background: #1a1a1a; border-top: 4px solid #f1c40f; border-bottom: 4px solid #f1c40f; width: 100%; max-width: 600px; }
         .ui-text { position: absolute; text-align: center; width: 100%; pointer-events: none; z-index: 10; }
         #liveScore { top: 20px; color: #f1c40f; font-weight: bold; font-size: 22px; }
-        #instruction { bottom: 20px; color: #aaa; font-size: 14px; }
-        .overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.8); padding: 20px; border-radius: 10px; border: 2px solid #f1c40f; }
+        .overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); padding: 25px; border-radius: 10px; border: 2px solid #f1c40f; min-width: 250px; }
         h1 { color: #f1c40f; margin: 0 0 10px 0; }
-        p { margin: 5px 0; }
+        .bonus-info { color: #3498db; font-weight: bold; font-size: 14px; margin-top: 5px; }
     </style>
 </head>
 <body>
     <div id="gameContainer">
         <div id="liveScore" class="ui-text">SCORE: 0 | BEST: 0</div>
         <canvas id="gameCanvas" width="600" height="250"></canvas>
-        <div id="instruction" class="ui-text">SPACE / TOUCH = JUMP</div>
-
+        
         <div id="startScreen" class="overlay">
             <h1>BATMAN JUMP</h1>
-            <p>PRESS SPACE TO START</p>
+            <p>SPACE TO START</p>
+            <p class="bonus-info">GET BLUE STAR TO SLOW DOWN!</p>
         </div>
 
         <div id="gameOverScreen" class="overlay" style="display: none;">
             <h1>GOTHAM FELL!</h1>
             <p id="finalScore"></p>
-            <p style="color: #f1c40f; font-weight: bold;">PRESS SPACE TO RETRY</p>
+            <p style="color: #f1c40f; font-weight: bold;">SPACE TO RETRY</p>
         </div>
     </div>
 
@@ -40,16 +39,15 @@
         const scoreDisplay = document.getElementById("liveScore");
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        let gameActive = false;
-        let isGameOver = false;
-        let score = 0;
+        let gameActive = false, isGameOver = false, score = 0;
         let highScore = localStorage.getItem("batmanHighScore") || 0;
         
         const batmanImg = new Image();
         batmanImg.src = 'https://img.icons8.com/color/96/batman.png';
 
-        let player = { x: 50, y: 180, w: 50, h: 50, dy: 0, jump: -11, ground: 180, jumping: false };
-        let obstacle = { x: 650, y: 200, w: 30, h: 30, speed: 5 };
+        let player = { x: 50, y: 180, w: 50, h: 50, dy: 0, jump: -12, ground: 180, jumping: false };
+        let obstacle = { x: 700, y: 200, w: 30, h: 30, speed: 5 };
+        let powerUp = { x: -100, y: 100, w: 20, h: 20, active: false }; // შენელების ბონუსი
         let buildings = [];
 
         function initBuildings() {
@@ -59,13 +57,13 @@
             }
         }
 
-        function playSound(freq, type, duration) {
+        function playSound(freq, type, duration, vol=0.05) {
             try {
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 osc.type = type;
                 osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-                gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                gain.gain.setValueAtTime(vol, audioCtx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
                 osc.connect(gain); gain.connect(audioCtx.destination);
                 osc.start(); osc.stop(audioCtx.currentTime + duration);
@@ -74,29 +72,31 @@
 
         function handleAction() {
             if (audioCtx.state === 'suspended') audioCtx.resume();
-            
             if (!gameActive && !isGameOver) {
-                // Start Game
                 document.getElementById("startScreen").style.display = "none";
                 gameActive = true;
-                initBuildings();
+                resetGameValues();
                 requestAnimationFrame(draw);
             } else if (isGameOver) {
-                // Reset Game
-                score = 0;
-                obstacle.x = 650;
-                obstacle.speed = 5;
-                player.y = player.ground;
-                isGameOver = false;
+                resetGameValues();
                 document.getElementById("gameOverScreen").style.display = "none";
-                scoreDisplay.innerHTML = `SCORE: 0 | BEST: ${highScore}`;
                 requestAnimationFrame(draw);
             } else if (gameActive && !player.jumping) {
-                // Jump
                 player.dy = player.jump;
                 player.jumping = true;
                 playSound(500, "sine", 0.1);
             }
+        }
+
+        function resetGameValues() {
+            score = 0;
+            obstacle.x = 700;
+            obstacle.speed = 5;
+            player.y = player.ground;
+            powerUp.active = false;
+            isGameOver = false;
+            scoreDisplay.innerHTML = `SCORE: 0 | BEST: ${highScore}`;
+            initBuildings();
         }
 
         function draw() {
@@ -104,35 +104,62 @@
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Buildings
+            // Buildings & Ground
             buildings.forEach(b => {
                 ctx.fillStyle = "#111";
                 ctx.fillRect(b.x, 240 - b.h, 60, b.h);
-                if(b.light) {
-                    ctx.fillStyle = "#f1c40f";
-                    ctx.fillRect(b.x + 25, 240 - b.h + 15, 8, 8);
-                }
+                if(b.light) { ctx.fillStyle = "#f1c40f"; ctx.fillRect(b.x + 25, 240 - b.h + 15, 8, 8); }
             });
-
             ctx.fillStyle = "#f1c40f";
             ctx.fillRect(0, 240, 600, 10);
 
+            // Batman
             ctx.drawImage(batmanImg, player.x, player.y, player.w, player.h);
             
+            // Obstacle
             ctx.fillStyle = "black";
             ctx.fillRect(obstacle.x, obstacle.y, obstacle.w, obstacle.h);
             ctx.strokeStyle = "white";
             ctx.strokeRect(obstacle.x, obstacle.y, obstacle.w, obstacle.h);
 
+            // Power-Up (Blue Star)
+            if (powerUp.active) {
+                ctx.fillStyle = "#3498db";
+                ctx.beginPath();
+                ctx.arc(powerUp.x, powerUp.y, 10, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = "white";
+                ctx.stroke();
+                powerUp.x -= obstacle.speed;
+                
+                // Collision with Power-Up
+                if (player.x < powerUp.x + 20 && player.x + player.w > powerUp.x &&
+                    player.y < powerUp.y + 20 && player.y + player.h > powerUp.y) {
+                    powerUp.active = false;
+                    obstacle.speed = Math.max(5, obstacle.speed - 2); // მინიმუმ 5 სიჩქარე
+                    playSound(800, "sine", 0.2, 0.1);
+                }
+                if (powerUp.x < -20) powerUp.active = false;
+            }
+
+            // Physics
             player.y += player.dy;
             if (player.y < player.ground) player.dy += 0.6;
             else { player.y = player.ground; player.dy = 0; player.jumping = false; }
 
             obstacle.x -= obstacle.speed;
             if (obstacle.x < -30) {
-                obstacle.x = 650;
+                obstacle.x = 700;
                 score++;
                 obstacle.speed += 0.2;
+                
+                // ყოველ 10 ქულაში ერთხელ ჩნდება ბონუსი
+                if (score % 10 === 0 && !powerUp.active) {
+                    powerUp.x = 700;
+                    powerUp.y = 80 + Math.random() * 40;
+                    powerUp.active = true;
+                }
+
                 if (score > highScore) {
                     highScore = score;
                     localStorage.setItem("batmanHighScore", highScore);
@@ -140,6 +167,7 @@
                 scoreDisplay.innerHTML = `SCORE: ${score} | BEST: ${highScore}`;
             }
 
+            // Collision with Obstacle
             if (player.x < obstacle.x + obstacle.w && player.x + player.w > obstacle.x &&
                 player.y < obstacle.y + obstacle.h && player.y + player.h > obstacle.y) {
                 isGameOver = true;
@@ -153,7 +181,7 @@
 
         window.addEventListener("keydown", (e) => { if (e.code === "Space") { e.preventDefault(); handleAction(); } });
         window.addEventListener("touchstart", (e) => { e.preventDefault(); handleAction(); }, {passive: false});
-
+        initBuildings();
         scoreDisplay.innerHTML = `SCORE: 0 | BEST: ${highScore}`;
     </script>
 </body>
