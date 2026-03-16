@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Batman Jump - Real City</title>
+    <title>Batman Jump - Visible Edition</title>
     <style>
-        body { text-align: center; background: #0b1115; color: white; font-family: 'Arial', sans-serif; margin: 0; overflow: hidden; touch-action: none; }
+        body { text-align: center; background: #1e272e; color: white; font-family: 'Arial', sans-serif; margin: 0; overflow: hidden; touch-action: none; }
         #gameContainer { width: 100vw; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        canvas { background: #16212b; border-top: 4px solid #f1c40f; border-bottom: 4px solid #f1c40f; width: 100%; height: auto; }
+        canvas { background: #2f3640; border-top: 4px solid #f1c40f; border-bottom: 4px solid #f1c40f; width: 100%; height: auto; }
         h1 { color: #f1c40f; margin: 5px 0; font-size: 24px; text-shadow: 2px 2px #000; }
         .score-box { color: #f1c40f; font-weight: bold; font-size: 22px; margin-bottom: 10px; }
-        .info-text { font-size: 12px; color: #bdc3c7; margin-top: 5px; }
+        .info-text { font-size: 12px; color: #dcdde1; margin-top: 5px; }
     </style>
 </head>
 <body>
@@ -50,13 +50,12 @@
         let score = 0;
         let isGameOver = false;
 
-        // შენობების გენერაცია
         let buildings = [];
-        for(let i=0; i<800; i+=70) { // 800-მდე, რომ ეკრანს გასცდეს
-            let h = 60 + Math.random() * 120;
+        for(let i=0; i<800; i+=75) {
+            let h = 60 + Math.random() * 100;
             let windowLayout = [];
             for(let row=0; row < h-20; row+=20) {
-                windowLayout.push({y: row+15, left: Math.random() < 0.4, right: Math.random() < 0.4});
+                windowLayout.push({y: row+15, left: Math.random() < 0.3, right: Math.random() < 0.3});
             }
             buildings.push({x: i, h: h, windows: windowLayout});
         }
@@ -78,44 +77,35 @@
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // ქალაქის ხატვა
+            // ქალაქის ხატვა (გაუფერულებული/ნათელი)
             buildings.forEach((b) => {
-                // შენობის ტანი
-                ctx.fillStyle = "#243447";
+                ctx.fillStyle = "#353b48";
                 ctx.fillRect(b.x, 240 - b.h, 55, b.h);
                 
-                // შენობის კონტური (ხაზები)
-                ctx.strokeStyle = "#1a2530";
-                ctx.lineWidth = 1;
-                ctx.strokeRect(b.x, 240 - b.h, 55, b.h);
-
-                // ფანჯრები და ჩარჩოები
                 b.windows.forEach(w => {
-                    // ჩარჩოს იმიტაცია (მუქი ხაზები)
-                    ctx.fillStyle = "#1a2533";
+                    ctx.fillStyle = "#2f3640";
                     ctx.fillRect(b.x+10, 240-b.h+w.y, 12, 12);
                     ctx.fillRect(b.x+33, 240-b.h+w.y, 12, 12);
 
-                    // თუ შუქი ანთია
-                    ctx.fillStyle = "#fff9c4";
+                    ctx.fillStyle = "#fbc531"; // უფრო ნათელი ყვითელი
                     if(w.left) ctx.fillRect(b.x+12, 240-b.h+w.y+2, 8, 8);
                     if(w.right) ctx.fillRect(b.x+35, 240-b.h+w.y+2, 8, 8);
                 });
             });
 
-            // მიწა
             ctx.strokeStyle = "#f1c40f";
             ctx.lineWidth = 5;
             ctx.beginPath(); ctx.moveTo(0, 240); ctx.lineTo(600, 240); ctx.stroke();
 
-            // პერსონაჟი
             ctx.drawImage(batmanImg, player.x, player.y, player.w, player.h);
             
-            // აგენტი
+            // აგენტი (წითელი კონტურით, რომ კარგად გამოჩნდეს)
             ctx.fillStyle = "#000";
             ctx.fillRect(obstacle.x, obstacle.y, obstacle.w, obstacle.h);
+            ctx.strokeStyle = "#e84118"; // მკვეთრი წითელი
+            ctx.lineWidth = 2;
+            ctx.strokeRect(obstacle.x, obstacle.y, obstacle.w, obstacle.h);
 
-            // ლოგიკა
             player.y += player.dy;
             if (player.y < player.ground) player.dy += 0.6;
             else { player.y = player.ground; player.dy = 0; player.jumping = false; }
