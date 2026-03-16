@@ -3,39 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Batman Jump - High Score Edition</title>
+    <title>Batman Jump - Gotham City</title>
     <style>
-        body { 
-            text-align: center; 
-            background: #1a1a1a; 
-            color: white; 
-            font-family: 'Arial', sans-serif; 
-            margin: 0; 
-            overflow: hidden; 
-            touch-action: none;
-        }
-        #gameContainer {
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-        }
-        canvas { 
-            background: #2c3e50; 
-            border-top: 4px solid #f1c40f; 
-            border-bottom: 4px solid #f1c40f; 
-            width: 100%; 
-            height: auto;
-        }
-        h1 { color: #f1c40f; margin: 5px 0; font-size: 24px; }
-        .score-box { 
-            color: #f1c40f; 
-            font-weight: bold; 
-            font-size: 22px; 
-            margin-bottom: 10px;
-        }
+        body { text-align: center; background: #1a1a1a; color: white; font-family: 'Arial', sans-serif; margin: 0; overflow: hidden; touch-action: none; }
+        #gameContainer { width: 100vw; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        canvas { background: #141e27; border-top: 4px solid #f1c40f; border-bottom: 4px solid #f1c40f; width: 100%; height: auto; }
+        h1 { color: #f1c40f; margin: 5px 0; font-size: 24px; text-shadow: 2px 2px #000; }
+        .score-box { color: #f1c40f; font-weight: bold; font-size: 22px; margin-bottom: 10px; }
         .info-text { font-size: 12px; color: #bdc3c7; margin-top: 5px; }
     </style>
 </head>
@@ -55,7 +29,6 @@
 
         const userLang = navigator.language || navigator.userLanguage;
         const isGeorgian = userLang.includes('ka');
-
         let highScore = localStorage.getItem("batmanHighScore") || 0;
 
         const texts = {
@@ -93,16 +66,31 @@
             }
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "#34495e";
-            for(let i=0; i<600; i+=60) ctx.fillRect(i, 150, 40, 100);
+
+            // ფონი: გოთემის შენობები ფანჯრებით
+            for(let i=0; i<600; i+=80) {
+                let h = 120 + (i % 4) * 15; 
+                ctx.fillStyle = "#2c3e50";
+                ctx.fillRect(i, 240 - h, 60, h); 
+                
+                ctx.fillStyle = "#f1c40f";
+                for(let row=0; row < h-30; row+=20) {
+                    ctx.fillRect(i+15, 240-h+row+20, 6, 6);
+                    ctx.fillRect(i+40, 240-h+row+20, 6, 6);
+                }
+            }
+
+            // მიწა
             ctx.strokeStyle = "#f1c40f";
             ctx.lineWidth = 5;
             ctx.beginPath(); ctx.moveTo(0, 240); ctx.lineTo(600, 240); ctx.stroke();
 
+            // პერსონაჟი და დაბრკოლება
             ctx.drawImage(batmanImg, player.x, player.y, player.w, player.h);
             ctx.fillStyle = "#000";
             ctx.fillRect(obstacle.x, obstacle.y, obstacle.w, obstacle.h);
 
+            // ლოგიკა
             player.y += player.dy;
             if (player.y < player.ground) player.dy += 0.6;
             else { player.y = player.ground; player.dy = 0; player.jumping = false; }
