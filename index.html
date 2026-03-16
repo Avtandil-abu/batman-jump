@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Batman Jump - Static Gotham</title>
+    <title>Batman Jump - Real City</title>
     <style>
         body { text-align: center; background: #0b1115; color: white; font-family: 'Arial', sans-serif; margin: 0; overflow: hidden; touch-action: none; }
         #gameContainer { width: 100vw; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
@@ -50,15 +50,15 @@
         let score = 0;
         let isGameOver = false;
 
-        // შენობების და ფანჯრების გენერაცია ერთხელ
+        // შენობების გენერაცია
         let buildings = [];
-        for(let i=0; i<600; i+=80) {
-            let h = 70 + Math.random() * 110;
-            let windows = [];
-            for(let row=0; row < h-30; row+=25) {
-                windows.push({y: row+20, leftOn: Math.random() < 0.2, rightOn: Math.random() < 0.2});
+        for(let i=0; i<800; i+=70) { // 800-მდე, რომ ეკრანს გასცდეს
+            let h = 60 + Math.random() * 120;
+            let windowLayout = [];
+            for(let row=0; row < h-20; row+=20) {
+                windowLayout.push({y: row+15, left: Math.random() < 0.4, right: Math.random() < 0.4});
             }
-            buildings.push({x: i, h: h, windows: windows});
+            buildings.push({x: i, h: h, windows: windowLayout});
         }
 
         function draw() {
@@ -78,15 +78,28 @@
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // ქალაქი
+            // ქალაქის ხატვა
             buildings.forEach((b) => {
-                ctx.fillStyle = "#2c3e50";
-                ctx.fillRect(b.x, 240 - b.h, 60, b.h); 
+                // შენობის ტანი
+                ctx.fillStyle = "#243447";
+                ctx.fillRect(b.x, 240 - b.h, 55, b.h);
                 
-                b.windows.forEach(win => {
-                    ctx.fillStyle = "#fff9c4"; // რბილი კრემისფერი
-                    if(win.leftOn) ctx.fillRect(b.x+15, 240-b.h+win.y, 6, 8);
-                    if(win.rightOn) ctx.fillRect(b.x+40, 240-b.h+win.y, 6, 8);
+                // შენობის კონტური (ხაზები)
+                ctx.strokeStyle = "#1a2530";
+                ctx.lineWidth = 1;
+                ctx.strokeRect(b.x, 240 - b.h, 55, b.h);
+
+                // ფანჯრები და ჩარჩოები
+                b.windows.forEach(w => {
+                    // ჩარჩოს იმიტაცია (მუქი ხაზები)
+                    ctx.fillStyle = "#1a2533";
+                    ctx.fillRect(b.x+10, 240-b.h+w.y, 12, 12);
+                    ctx.fillRect(b.x+33, 240-b.h+w.y, 12, 12);
+
+                    // თუ შუქი ანთია
+                    ctx.fillStyle = "#fff9c4";
+                    if(w.left) ctx.fillRect(b.x+12, 240-b.h+w.y+2, 8, 8);
+                    if(w.right) ctx.fillRect(b.x+35, 240-b.h+w.y+2, 8, 8);
                 });
             });
 
@@ -95,8 +108,10 @@
             ctx.lineWidth = 5;
             ctx.beginPath(); ctx.moveTo(0, 240); ctx.lineTo(600, 240); ctx.stroke();
 
-            // პერსონაჟი და დაბრკოლება
+            // პერსონაჟი
             ctx.drawImage(batmanImg, player.x, player.y, player.w, player.h);
+            
+            // აგენტი
             ctx.fillStyle = "#000";
             ctx.fillRect(obstacle.x, obstacle.y, obstacle.w, obstacle.h);
 
